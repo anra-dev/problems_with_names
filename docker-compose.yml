@@ -1,0 +1,41 @@
+version: '3'
+services:
+  wireguard:
+    container_name: wireguard_test
+    build:
+      context: .
+      dockerfile: Dockerfile
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
+    volumes:
+      - ./wireguard.conf:/etc/wireguard/wg0.conf
+    restart: unless-stopped
+    networks:
+      - net_gpt
+
+  with_vpn:
+    image: nicolaka/netshoot
+    container_name: with_vpn
+    command: ping without_vpn
+    depends_on:
+      - wireguard
+    network_mode: service:wireguard
+    networks:
+      - net_gpt
+
+  without_vpn:
+    image: nicolaka/netshoot
+    container_name: without_vpn
+    command: ping with_vpn
+    depends_on:
+      - wireguard
+    networks:
+      - net_gpt
+
+networks:
+  net_gpt:
+    driver: bridge
+
